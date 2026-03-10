@@ -6,12 +6,12 @@ Because Colab is a fresh environment every time, it doesn't have your project fi
 Here is exactly what you would have done in the VS Code terminal (which would now be acting as the Colab Terminal):
 
 ### 1. Transfer Your Files
-You would drag and drop your entire `Omnia_Anomaly_Detection_coreX` folder from your Windows desktop directly into the left-hand sidebar of VS Code (the Explorer tab). This uploads the files directly to the Colab server over SSH.
+You would drag and drop your entire `Omni_Anomaly_Detection_coreX` folder from your Windows desktop directly into the left-hand sidebar of VS Code (the Explorer tab). This uploads the files directly to the Colab server over SSH.
 *Alternatively, if your code was on GitHub, you would type `git clone <your-repo>` into the terminal.*
 
 ### 2. Enter Your Project Folder
 ```bash
-cd Omnia_Anomaly_Detection_coreX
+cd Omni_Anomaly_Detection_coreX
 ```
 
 ### 3. Install Miniconda (To get Python 3.6)

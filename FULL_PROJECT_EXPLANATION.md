@@ -1,13 +1,13 @@
-# Omnia CoreX: Complete File & Structure Guide
+# Omni CoreX: Complete File & Structure Guide
 
-This guide explains the purpose of every file and folder in the Omnia CoreX project so anyone can understand the architecture at a glance.
+This guide explains the purpose of every file and folder in the Omni CoreX project so anyone can understand the architecture at a glance.
 
 ## 📂 Root Directory / General Workflow
 - **`zip_for_kaggle.py`**: A utility script used to package the V2 project securely into a `.zip` file for uploading to Kaggle as a dataset. It explicitly ignores large, unnecessary folders like `__pycache__` and existing zip files to save bandwidth.
 
 ---
 
-## 📂 Project Directory Breakdown (Applies to `Omnia_Anomaly_Detection_coreX-main/` in V1 and V2)
+## 📂 Project Directory Breakdown (Applies to `Omni_Anomaly_Detection_coreX-main/` in V1 and V2)
 
 ### 1. Data Processing Scripts
 - **`data_preprocess.py`**: The first script you should run. It cleans raw data (like `rtde_data.csv`), normalizes the values, and creates standard train/test subsets stored as `.pkl` files in the `data/` folder.

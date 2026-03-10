@@ -7,14 +7,14 @@ The best way to run your project on Colab from VS Code is to use **Google Drive*
 ---
 
 ### Phase 1: Preparation (Local)
-1. **Upload your local project folder** (`Omnia_Anomaly_Detection_coreX`) to your Google Drive root (`My Drive`).
+1. **Upload your local project folder** (`Omni_Anomaly_Detection_coreX`) to your Google Drive root (`My Drive`).
 2. Open your local VS Code.
 3. Install the **'Google Colab'** extension from the Marketplace.
 
 ---
 
 ### Phase 2: Connecting to Colab from VS Code
-1. Open the [Run_on_Colab.ipynb](file:///d:/Omnia_Anomaly_Detection_coreX/Run_on_Colab.ipynb) file in VS Code.
+1. Open the [Run_on_Colab.ipynb](file:///d:/Omni_Anomaly_Detection_coreX/Run_on_Colab.ipynb) file in VS Code.
 2. Click the **'Select Kernel'** button (top-right).
 3. Select **'Google Colab'** → Sign in to your Google Account.
 4. Select the **T4 GPU** runtime.

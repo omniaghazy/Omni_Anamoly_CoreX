@@ -16,7 +16,7 @@ def zip_project(source_dir, output_filename):
                 print(f"Added: {arcname}")
 
 if __name__ == "__main__":
-    source = r"X:\Omnia_CoreX\Omnia_Anomaly_Detection_coreX-main"
-    output = r"X:\Omnia_CoreX\coreX_project_kaggle.zip"
+    source = r"X:\Omni_CoreX\Omni_Anomaly_Detection_coreX-main"
+    output = r"X:\Omni_CoreX\coreX_project_kaggle.zip"
     zip_project(source, output)
     print(f"\n✅ Created: {output}")

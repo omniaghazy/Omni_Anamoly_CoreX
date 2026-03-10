@@ -1,6 +1,6 @@
 # Changelog: Version 1 vs Version 2
 
-This document outlines the major differences, improvements, and fixes that occurred between **Version 1** and **Version 2** of the Omnia CoreX anomaly detection project.
+This document outlines the major differences, improvements, and fixes that occurred between **Version 1** and **Version 2** of the Omni CoreX anomaly detection project.
 
 ## Version 1 (V1)
 V1 served as the baseline implementation, adapting the OmniAnomaly framework to the robot manipulation data (`rtde_data.csv`).

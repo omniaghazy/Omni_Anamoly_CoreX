@@ -3,8 +3,8 @@ import pickle
 import numpy as np
 import os
 
-result_path = r'd:\Omnia_Anomaly_Detection_coreX\results\RobotArm_coreX_v1\test_score.pkl'
-label_path = r'd:\Omnia_Anomaly_Detection_coreX\data\processed\RobotArm_test_label.pkl'
+result_path = r'd:\Omni_Anomaly_Detection_coreX\results\RobotArm_coreX_v1\test_score.pkl'
+label_path = r'd:\Omni_Anomaly_Detection_coreX\data\processed\RobotArm_test_label.pkl'
 
 def get_results():
     if not os.path.exists(result_path):

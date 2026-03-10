@@ -252,7 +252,7 @@ if __name__ == '__main__':
 
     # عدلي السطر ده بالمسار اللي لسه جايباه
     # ضيفي /model.ckpt في آخر المسار
-    # config.restore_dir = 'D:/Omnia_Anomaly_Detection_coreX/results/RobotArm/20260222-172015/model.ckpt'
+    # config.restore_dir = 'D:/Omni_Anomaly_Detection_coreX/results/RobotArm/20260222-172015/model.ckpt'
 
     for attr, value in missing_configs.items():
         if not hasattr(config, attr):
