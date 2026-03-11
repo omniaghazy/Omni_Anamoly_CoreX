@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from tfsnippet.distributions import Distribution
 
@@ -10,10 +10,17 @@ class TfpDistribution(Distribution):
         if not isinstance(distribution, tfp.distributions.Distribution):
             raise TypeError('`distribution` is not an instance of `tfp.'
                             'distributions.Distribution`')
-        super(TfpDistribution, self).__init__()
         self._distribution = distribution
         self._is_continuous = True
         self._is_reparameterized = self._distribution.reparameterization_type is tfp.distributions.FULLY_REPARAMETERIZED
+        super(TfpDistribution, self).__init__(
+            dtype=distribution.dtype,
+            is_continuous=self._is_continuous,
+            is_reparameterized=self._is_reparameterized,
+            batch_shape=distribution.batch_shape,
+            batch_static_shape=distribution.batch_shape,
+            value_ndims=tf.size(distribution.event_shape) if distribution.event_shape else 0
+        )
 
     @property
     def is_reparameterized(self):
@@ -66,15 +73,14 @@ class TfpDistribution(Distribution):
             return log_prob
 
 def softplus_std(inputs, units, epsilon, name):
-    with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(name):
         # 1. طبقة الـ Dense مع Bias مدروس
         # استخدمنا kernel_initializer عشان نضمن إن البداية تكون مستقرة
-        raw_std = tf.layers.dense(
-            inputs, 
+        raw_std = tf.keras.layers.Dense(
             units, 
             name='dense',
-            kernel_initializer=tf.glorot_uniform_initializer()
-        )
+            kernel_initializer=tf.compat.v1.glorot_uniform_initializer()
+        )(inputs)
         
         # 2. تطبيق الـ Softplus
         std = tf.nn.softplus(raw_std)
@@ -95,27 +101,28 @@ def rnn(x,
         time_axis=1,
         name='rnn'):
     from tensorflow.contrib import rnn as contrib_rnn
-    with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(name):
         if len(x.shape) == 4:
             x = tf.reduce_mean(x, axis=0)
         elif len(x.shape) != 3:
             logging.error("rnn input shape error")
         
         # 1. بناء الـ Stacked Cells
+        from tensorflow.python.keras.layers.legacy_rnn import rnn_cell_impl
         def get_cell(num_units):
             if rnn_cell == 'LSTM':
-                return tf.nn.rnn_cell.BasicLSTMCell(num_units, forget_bias=1.0)
+                return rnn_cell_impl.BasicLSTMCell(num_units, forget_bias=1.0)
             elif rnn_cell == "GRU":
-                return tf.nn.rnn_cell.GRUCell(num_units)
+                return rnn_cell_impl.GRUCell(num_units)
             else:
-                return tf.nn.rnn_cell.BasicRNNCell(num_units)
+                return rnn_cell_impl.BasicRNNCell(num_units)
 
-        fw_cell = tf.nn.rnn_cell.MultiRNNCell([get_cell(rnn_num_hidden) for _ in range(2)])
-        bw_cell = tf.nn.rnn_cell.MultiRNNCell([get_cell(rnn_num_hidden) for _ in range(2)])
+        fw_cell = rnn_cell_impl.MultiRNNCell([get_cell(rnn_num_hidden) for _ in range(2)])
+        bw_cell = rnn_cell_impl.MultiRNNCell([get_cell(rnn_num_hidden) for _ in range(2)])
 
         # 2. الـ Bidirectional Logic
         try:
-            (outputs_fw, outputs_bw), _ = tf.nn.bidirectional_dynamic_rnn(
+            (outputs_fw, outputs_bw), _ = tf.compat.v1.nn.bidirectional_dynamic_rnn(
                 fw_cell, bw_cell, x, dtype=tf.float32)
             outputs = tf.concat([outputs_fw, outputs_bw], axis=-1)
         except Exception:
@@ -126,24 +133,24 @@ def rnn(x,
 
         # 3. الـ Attention Mechanism (يتحط هنا قبل الـ Dense)
         # 
-        attention_score = tf.layers.dense(outputs, 1, activation=tf.nn.tanh)
+        attention_score = tf.keras.layers.Dense(1, activation=tf.nn.tanh)(outputs)
         attention_weights = tf.nn.softmax(attention_score, axis=1)
         outputs = outputs * attention_weights
 
         # 4. طبقات الـ Dense للتنعيم وضبط الأبعاد
         # أول طبقة بتقلل الحجم من (الضعف) لـ dense_dim عشان يرجع طبيعي
         for i in range(hidden_dense):
-            outputs = tf.layers.dense(outputs, dense_dim, activation=tf.nn.relu)
+            outputs = tf.keras.layers.Dense(dense_dim, activation=tf.nn.relu)(outputs)
             
         # سطر الأمان: بنخلي آخر مخرج بنفس حجم rnn_num_hidden عشان الـ VAE ميزعلش
-        outputs = tf.layers.dense(outputs, rnn_num_hidden)
+        outputs = tf.keras.layers.Dense(rnn_num_hidden)(outputs)
         
         return outputs
 
 
 
 def wrap_params_net(inputs, h_for_dist, mean_layer, std_layer):
-    with tf.variable_scope('hidden', reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope('hidden'):
         # 1. بنطلع الـ Features الأساسية من الـ RNN
         h = h_for_dist(inputs)
         
@@ -168,7 +175,7 @@ def wrap_params_net(inputs, h_for_dist, mean_layer, std_layer):
     }
 
 def wrap_params_net_srnn(inputs, h_for_dist):
-    with tf.variable_scope('hidden', reuse=tf.AUTO_REUSE):
+    with tf.compat.v1.variable_scope('hidden'):
         # 1. استخراج الـ Features
         h = h_for_dist(inputs)
         

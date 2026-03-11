@@ -65,6 +65,9 @@ class ExpConfig(Config):
     result_dir   = os.path.join('results', 'RobotArm_coreX_v2_optimized')
     restore_dir  = None    # Train from scratch for optimization test
 
+    # ── [CGAD] Causal Graph ───────────────────────────────────────────────────
+    causal_adj_matrix_path = 'causal_adj_matrix.npy'  # Transfer Entropy matrix
+
 
 def main():
     logging.basicConfig(

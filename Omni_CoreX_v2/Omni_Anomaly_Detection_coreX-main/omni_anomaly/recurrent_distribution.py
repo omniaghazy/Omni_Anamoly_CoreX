@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tfsnippet import Distribution, Normal
 from omni_anomaly.wrapper import softplus_std
 
@@ -54,12 +54,12 @@ class RecurrentDistribution(Distribution):
         input_q = tf.concat([input_q_n_expanded, z_previous], axis=-1)
 
         # 3. استخراج الباراميترز (مع حقن الـ Stability)
-        with tf.variable_scope('inference_net', reuse=tf.AUTO_REUSE):
+        with tf.compat.v1.variable_scope('inference_net'):
             mu_q = self.mean_q_mlp(input_q)
             
             # تحسين عالمي: استخدام الـ softplus_std اللي عملناه لضمان الثبات الرياضي
             # ده بيمنع الـ Posterior Collapse عبر الزمن
-            std_q = softplus_std(input_q, units=mu_q.shape[-1], epsilon=1e-5, name='std_q_gate')
+            std_q = softplus_std(input_q, units=int(mu_q.shape[-1]), epsilon=1e-5, name='std_q_gate')
 
         # 4. الـ Reparameterization Trick (The Sampling process)
         # z = mu + std * noise
@@ -86,11 +86,11 @@ class RecurrentDistribution(Distribution):
         # 2. دمج الماضي (الداتا المعطاة) مع الحاضر (Context)
         input_q = tf.concat([given_n, input_q_n], axis=-1)
         
-        with tf.variable_scope('inference_net', reuse=tf.AUTO_REUSE):
+        with tf.compat.v1.variable_scope('inference_net'):
             # 3. استخراج باراميترز التوزيعة بـ "صمام الأمان"
             mu_q = self.mean_q_mlp(input_q)
             # استخدام الـ softplus_std اللي عملناه عشان الـ logstd يكون سليم
-            std_q = softplus_std(input_q, units=mu_q.shape[-1], epsilon=1e-5, name='std_q_gate')
+            std_q = softplus_std(input_q, units=int(mu_q.shape[-1]), epsilon=1e-5, name='std_q_gate')
             logstd_q = tf.log(std_q)
 
         # 4. الحساب المطور للـ Log Probability (بدل المعادلات اليدوية الخطيرة)
@@ -126,7 +126,24 @@ class RecurrentDistribution(Distribution):
 
     def __init__(self, input_q, mean_q_mlp, std_q_mlp, z_dim, window_length=100, is_reparameterized=True,
              check_numerics=True):
-        super(RecurrentDistribution, self).__init__()
+        # 1. تكة الـ CoreX: التأكد من الـ Dtype لضمان الـ Precision
+        self._dtype = input_q.dtype
+        self._is_reparameterized = is_reparameterized
+        self._is_continuous = True
+        self.z_dim = z_dim
+        self.window_length = window_length
+        self.batch_size = tf.shape(input_q)[0]
+        
+        # 2. نداء الـ Base Class بالباراميترز الـ 6 المطلوبة (لأجل توافق tfsnippet)
+        super(RecurrentDistribution, self).__init__(
+            dtype=self._dtype,
+            is_continuous=self._is_continuous,
+            is_reparameterized=self._is_reparameterized,
+            batch_shape=tf.stack([self.batch_size, window_length]),
+            batch_static_shape=tf.TensorShape([None, window_length]),
+            value_ndims=1
+        )
+
         
         # 1. تعريف الـ Prior الأساسي (Standard Normal)
         # بنستخدمه كمرجع للحسابات الاحتمالية

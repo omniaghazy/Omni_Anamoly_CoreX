@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tfsnippet.bayes import BayesianNet
 from tfsnippet.distributions import Distribution
 from tfsnippet.stochastic import StochasticTensor, validate_n_samples_arg
@@ -175,7 +175,7 @@ class VAE(VarScopeObject):
             # Here `reopen_name_scope` is set to True, so that multiple
             # calls to the same Module instance will always generate operations
             # within the original name scope.
-            # However, in order for ``tf.variable_scope(default_name=...)``
+            # However, in order for ``tf.compat.v1.variable_scope(default_name=...)``
             # to work properly with variable reusing, we must generate a nested
             # unique name scope.
             with tf.name_scope('forward'):
@@ -253,7 +253,7 @@ class VAE(VarScopeObject):
             observed['z'] = z
         net = BayesianNet(observed=observed)
 
-        with tf.variable_scope('h_for_q_z'):
+        with tf.compat.v1.variable_scope('h_for_q_z'):
             z_params = self.h_for_q_z(x)
 
         with tf.name_scope('z'):
@@ -280,10 +280,10 @@ class VAE(VarScopeObject):
                         group_ndims=self.z_group_ndims,
                         is_reparameterized=self.is_reparameterized)
 
-        with tf.variable_scope('h_for_p_x'):
+        with tf.compat.v1.variable_scope('h_for_p_x'):
             x_params = self.h_for_p_x(z)
 
-        with tf.variable_scope('p_x_given_z'):
+        with tf.compat.v1.variable_scope('p_x_given_z'):
             p_x_dist = self.p_x_given_z(**x_params)
 
         with tf.name_scope('x'):
@@ -443,7 +443,7 @@ class Lambda(VarScopeObject):
             # Here `reopen_name_scope` is set to True, so that multiple
             # calls to the same Module instance will always generate operations
             # within the original name scope.
-            # However, in order for ``tf.variable_scope(default_name=...)``
+            # However, in order for ``tf.compat.v1.variable_scope(default_name=...)``
             # to work properly with variable reusing, we must generate a nested
             # unique name scope.
             with tf.name_scope('forward'):

@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tfsnippet.scaffold import TrainLoop
 from tfsnippet.shortcuts import VarScopeObject
 from tfsnippet.utils import (reopen_variable_scope,
@@ -96,7 +96,7 @@ class Trainer(VarScopeObject):
 
             with reopen_variable_scope(self.variable_scope):
                 # الـ Global Step
-                self._global_step = tf.get_variable(
+                self._global_step = tf.compat.v1.get_variable(
                     dtype=tf.int64, name='global_step', trainable=False,
                     initializer=tf.constant(0, dtype=tf.int64)
                 )
