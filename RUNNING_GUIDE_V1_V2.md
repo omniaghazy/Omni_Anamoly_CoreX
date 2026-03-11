@@ -47,9 +47,16 @@ Version 2 is located in `X:\Omni_CoreX\Omni_CoreX_v2\Omni_Anomaly_Detection_core
    - `python main.py` (Trains the model)
    - `python plot_results.py` (Generates visual evaluation metrics)
 
-## 4. Running on Kaggle (V2)
+## 4. Running on Kaggle (V2 - TF1.15)
 Due to substantial computational requirements (e.g. 10h+ processing time for 3 epochs), Kaggle is recommended. We've prepared specific scripts to make deploying onto Kaggle easier.
 1. Run `zip_for_kaggle.py` (located in the root directory: `X:\Omni_CoreX\zip_for_kaggle.py`) to zip the V2 folder securely.
 2. Upload the resulting `.zip` as a dataset to your Kaggle Notebook.
 3. In Kaggle, use a notebook environment set to **Python** with **GPU (P100 or T4x2)**.
 4. Run the custom installation & execution cells we set up in our Kaggle runs to compile a custom Conda Python 3.6 environment on Kaggle's image.
+
+## 5. Running on Kaggle (Native TF 2.x - Causal Graph V2)
+Our latest updates integrate a Causal Graph Module and allow the original TF1.15 code to run natively on **TensorFlow 2.x / Keras 3** without compiling custom Conda environments.
+1. Upload the repository code to Kaggle.
+2. Create a new notebook using Kaggle's standard **Python 3 / GPU** image.
+3. Upload and execute `corex-v2-causal-graph-kaggle.ipynb`.
+4. This new notebook leverages `standardize_tf_imports.py` to seamlessly execute older `tf.contrib` and GRU module logic on modern TF 2.x without structurally breaking the old architecture. Preprocessing (`data_preprocess.py`) and feature engineering must still be run before model execution as defined in the notebook.

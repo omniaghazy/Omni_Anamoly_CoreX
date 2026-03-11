@@ -4,6 +4,7 @@ This guide explains the purpose of every file and folder in the Omni CoreX proje
 
 ## 📂 Root Directory / General Workflow
 - **`zip_for_kaggle.py`**: A utility script used to package the V2 project securely into a `.zip` file for uploading to Kaggle as a dataset. It explicitly ignores large, unnecessary folders like `__pycache__` and existing zip files to save bandwidth.
+- **`corex-v2-causal-graph-kaggle.ipynb`**: The premier Kaggle execution environment. Configured natively for TensorFlow 2.x and Keras 3, omitting the need for Conda environments to execute the OmniAnomaly workflow.
 
 ---
 
@@ -19,6 +20,8 @@ This guide explains the purpose of every file and folder in the Omni CoreX proje
 - **`main.py`**: The core execution hub. It loads the preprocessed data, builds the OmniAnomaly neural network graph, and begins the training loop. Modify parameters like epochs, batch sizes, and learning rates here.
 - **`anomaly_factory.py`**: Contains the factory classes and core algorithmic logic for how anomalies are formally scored, defined, and evaluated once the model executes.
 - **`check_gpu.py`**: A diagnostic tool to verify if your TensorFlow 1.15 environment successfully detects your NVIDIA GPU.
+- **`standardize_tf_imports.py` (V2 only)**: A retroactive backwards-compatibility bridge that intercepts TF 1.x `contrib` logic and maps it directly to TF 2.x Keras 3 methods natively.
+- **`test_graph.py` (V2 only)**: Isolated diagnostic script verifying if the TensorFlow computation graph successfully compiled before engaging the lengthy full-training process.
 
 ### 3. Results & Visualization
 - **`plot_results.py`**: Reads the output anomaly scores and draws comparative threshold graphs to visually represent where the robot arm failed.

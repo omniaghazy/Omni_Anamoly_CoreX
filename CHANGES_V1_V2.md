@@ -27,6 +27,11 @@ V2 introduced significant architectural enhancements to both the data pipeline a
 - Added `plot_results.py` and `quick_results.py` in V2 to rapidly extract anomaly scores and plot comprehensive charts (e.g., `RobotArm_final_report.png`) without having to parse raw terminal text.
 - Included `USAGE_GUIDE.md` for specific local execution instructions.
 
+### 5. TF2 & Causal Graph Integration (Latest Update)
+- Integrated the `CausalGraphModule` using spatial analysis.
+- Introduced `standardize_tf_imports.py` to transparently map legacy TF 1.x `tf.contrib` and GRU module calls to modern TF 2.x Keras equivalencies without breaking the original architecture.
+- Added a native TF 2.x / Keras 3 Kaggle notebook (`corex-v2-causal-graph-kaggle.ipynb`) to bypass Python 3.6 Conda environment requirements entirely.
+
 ## Kaggle Fixes Applied (During V2)
 Because V2 demands substantial compute power, we formulated fixes specifically to deploy V2 via Kaggle Notebooks.
 - **Environment Resolution**: Solved Kaggle compatibility issues with TF1.15 by constructing scripts to install a custom Miniconda Python 3.6 environment on top of Kaggle's native image.
