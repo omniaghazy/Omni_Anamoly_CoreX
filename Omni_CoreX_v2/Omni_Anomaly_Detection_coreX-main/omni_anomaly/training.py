@@ -96,7 +96,7 @@ class Trainer(VarScopeObject):
 
             with reopen_variable_scope(self.variable_scope):
                 # الـ Global Step
-                self._global_step = tf.compat.v1.get_variable(
+                self._global_step = tf.get_variable(
                     dtype=tf.int64, name='global_step', trainable=False,
                     initializer=tf.constant(0, dtype=tf.int64)
                 )
@@ -121,7 +121,7 @@ class Trainer(VarScopeObject):
                         loss += tf.losses.get_regularization_loss()
                     self._loss = loss
 
-                # تجميع المتغيرات اللي هتتمرن
+                # Collect trainable variables for this model
                 train_params = get_variables_as_dict(
                     scope=model_vs, collection=tf.GraphKeys.TRAINABLE_VARIABLES)
                 self._train_params = train_params

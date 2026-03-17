@@ -1,0 +1,866 @@
+4.6 2.2
+An Anomaly Detection Method for
+Multivariate Time Series Data
+Based on Variational Autoencoders
+and Association Discrepancy
+Haodong Wang and Huaxiong ZhangArticle
+https://doi.org/10.3390/math13071209
+Academic Editor: Yanjie Fu
+Received: 8 March 2025
+Revised: 2 April 2025
+Accepted: 5 April 2025
+Published: 7 April 2025
+Citation: Wang, H.; Zhang, H. An
+Anomaly Detection Method for
+Multivariate Time Series Data Based
+on Variational Autoencoders and
+Association Discrepancy. Mathematics
+2025 ,13, 1209. https://doi.org/
+10.3390/math13071209
+Copyright: © 2025 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license
+(https://creativecommons.org/
+licenses/by/4.0/).Article
+An Anomaly Detection Method for Multivariate Time Series
+Data Based on Variational Autoencoders and
+Association Discrepancy
+Haodong Wang and Huaxiong Zhang *
+School of Computer Science and Technology (School of Artiﬁcial Intelligence), Zhejiang Sci-Tech University,
+Hangzhou 310018, China; 202230603115@mails.zstu.edu.cn
+*Correspondence: zhxhz@zstu.edu.cn
+Abstract: Driven by rapid advancements in big data and Internet of Things (IoT) tech-
+nologies, time series data are now extensively utilized across diverse industrial sectors.
+The precise identiﬁcation of anomalies in time series data—especially within intricate and
+ever-changing environments—has emerged as a key focus in contemporary research. This
+paper proposes a multivariate anomaly detection framework that synergistically combines
+variational autoencoders with association discrepancy analysis. By incorporating prior
+knowledge of associations and sequence association mechanisms, the model can capture
+long-term dependencies in time series and effectively model the association discrepancy
+between different time points. Through reconstructing time series data, the model enhances
+the distinction between normal and anomalous points, learning the association discrepancy
+during reconstruction to strengthen its ability to identify anomalies. By combining recon-
+struction errors and association discrepancy, the model achieves more accurate anomaly
+detection. Extensive experimental validation demonstrates that the proposed methodologi-
+cal framework achieves statistically signiﬁcant improvements over existing benchmarks,
+attaining superior F1 scores across diverse public datasets. Notably, it exhibits enhanced
+capability in modeling temporal dependencies and identifying nuanced anomaly patterns.
+This work establishes a novel paradigm for time series anomaly detection with profound
+theoretical implications and practical implementations.
+Keywords: time series anomaly detection; deep learning; association discrepancy; variational
+autoencoder; multivariate time series
+MSC: 37M10
+1. Introduction
+Driven by rapid advancements in industrial technology, time series anomaly detection
+has been extensively applied across diverse domains. Key applications include industrial
+equipment monitoring, spacecraft status monitoring, network security, and ﬁnancial fraud
+detection [ 1]. The primary objective of this task is to identify anomalous instances that
+signiﬁcantly differ from the majority of data points. This process is crucial for improving
+operational efﬁciency, reducing costs, and enhancing public safety. However, the imbalance
+between normal and anomalous samples makes it extremely challenging to obtain anomaly
+labels, leading most existing algorithms to rely on unsupervised learning methods for
+anomaly detection.
+Mathematics 2025 ,13, 1209 https://doi.org/10.3390/math13071209
+Mathematics 2025 ,13, 1209 2 of 17
+Although deep learning techniques have advanced considerably in time series
+anomaly detection over recent years, current methods continue to confront several chal-
+lenges. For example, prediction-based anomaly detection methods, such as Long Short-
+Term Memory (LSTM) networks are prone to gradient explosion problems when handling
+long time series, and their sequential processing mechanism results in low detection ef-
+ﬁciency. Additionally, reconstruction-based anomaly detection methods like variational
+autoencoders (VAEs) often neglect key features such as the sequential relationships and time
+intervals between data points during time series reconstruction. This impedes the models’
+ability to thoroughly capture the fundamental dynamic patterns within the sequences.
+In order to overcome these obstacles, this study introduces a multivariate time series
+anomaly detection model based on variational autoencoders and association discrepancy
+—VAE-Anomaly. The model utilizes the self-attention mechanism to effectively capture
+temporal dependencies in multivariate time series, with a focus on modeling the prior
+associations and sequence associations of the data. Speciﬁcally, sequence association
+represents the distribution of relationships between time points in a time series, providing
+rich contextual information for capturing dynamic features (such as periodicity and trend).
+Prior association reﬂects the potential strong correlations between adjacent or nearby time
+points based on prior assumptions of their relative positions in the time series [ 2].
+By incorporating prior associations, the model can predeﬁne potential time-point
+dependencies without encountering actual data. This mechanism is particularly important
+for anomaly detection, as anomalous data, due to their sparsity, typically have weak
+correlations with other time points, and this weak correlation is primarily concentrated
+between adjacent time points. Based on this feature, this paper uses association discrepancy
+as an important metric for anomaly detection, which quantiﬁes the difference between
+prior associations and sequence associations. Experimental results show that anomalous
+points usually have smaller association discrepancies, meaning their prior associations are
+closer to their sequence associations.
+To enhance the model’s anomaly detection capability, this paper combines variational
+autoencoders (VAEs) and utilizes the Evidence Lower Bound (ELBO) to estimate the
+probability distribution of input data. During reconstruction, the model improves its
+ability to identify anomalies by learning the association discrepancies of the reconstructed
+data. Since anomalous data typically generate larger reconstruction errors, reconstruction
+error is used as another critical criterion for anomaly detection. The latent variable prior
+distribution introduced by VAEs further enhances the model’s robustness.
+In terms of anomaly score thresholds, this paper adopts an Extreme Value Theory
+(EVT)-based Peak Over Threshold (POT) model [ 3] to automatically set detection thresholds.
+The experimental results demonstrate that the proposed model surpasses existing baseline
+methods on four public datasets and performs second-best on another dataset.
+The main contributions of this article are as follows:
+The ﬁrst is the design of a triple-weighted loss function integrating reconstruction
+error, KL divergence, and association discrepancy loss to optimize model parameters. This
+uniﬁed framework combines association discrepancy with reconstruction error for anomaly
+score calculation, enabling adaptive threshold determination to detect temporal anomalies.
+The second is enhanced anomaly discriminability through association discrepancy
+learning on reconstructed time series data. By reconstructing input sequences, the disparity
+between normal and anomalous points becomes ampliﬁed in the latent representation
+space, thereby strengthening the model’s capacity to identify subtle yet critical deviations
+through association discrepancy analysis.
+Mathematics 2025 ,13, 1209 3 of 17
+2. Related Work
+Research on time series anomaly detection has attracted considerable attention from
+scholars, focusing on developing efﬁcient and accurate detection methods to address
+challenges in various practical applications. Currently, the main research directions include
+anomaly detection methods based on statistical models, machine learning models, and
+deep learning models.
+Traditional statistical methods are widely used in time series anomaly detection. For
+instance, the Autoregressive Integrated Moving Average (ARIMA) model [ 4] models the
+autocorrelation, trend, and seasonality in time series to predict future values and detect
+anomalies based on the predicted results. The ARIMA model is well suited for stationary
+and periodic data, effectively capturing linear relationships within the dataset. However,
+ARIMA needs high stationarity in the data and has limited adaptability to complex non-
+linear relationships and abrupt changes, thus performing poorly when confronted with
+complex dynamic patterns. Additionally, methods such as exponential smoothing and the
+autoregressive moving average (ARMA) were proposed for anomaly detection [ 5,6].
+With the advancement of machine learning, new approaches have provided more
+solutions for time series anomaly detection. A notable example is the Isolation Forest [ 7]
+proposed by Liu et al., which identiﬁes anomalies by isolating data points based on the
+difﬁculty of their isolation.
+With advancements in deep learning, neural-network-based approaches have achieved
+signiﬁcant progress in time series anomaly detection. These include recurrent neural
+network (RNN) approaches exempliﬁed by DeepAR [ 8] and LSTNet [ 9]; convolutional
+architectures including TCN [ 10] and SCINet [ 11]; Transformer-based innovations such
+as Informer [ 12] with ProbSparse attention and its variants Autoformer [ 13] leveraging
+seasonal-trend decomposition, Fedformer [ 14], and PatchTST [ 15]; MLP-driven frameworks
+featuring N-BEATS [ 16], which employ backward residual links for interpretable decom-
+position; and linear-based models (NLinear [ 17], DLinear [ 17]), which simplify temporal
+projection through channel-independent weighting [ 18–21]. Park et al. [ 22] proposed LSTM-
+VAE, where LSTM captures the spatiotemporal characteristics of the sequence, while VAE
+learns the latent representation of the data to reconstruct the original sequence. Anomalies
+are identiﬁed when the reconstruction error surpasses a predeﬁned threshold. Su et al. [ 23]
+used SRNN, a variant of RNN, which introduces stochastic modeling, making the model
+more robust when handling multivariate time series data and aiding in capturing complex
+dynamic features. Zong et al. [ 24] pioneered a dual-pathway architecture integrating deep
+autoencoders with Gaussian mixture modeling (DAGMM) for unsupervised anomaly detec-
+tion. The VRNN framework [ 25] implements a temporal variational inference mechanism
+that computes posterior approximations by contextually combining current observational
+data with preceding hidden states in recurrent computations. VRNN captures the temporal
+dependencies between random variables through iterative updates of the RNN hidden vec-
+tor. The generative network uses the sampled value of the current random variable along
+with the previous RNN hidden state to generate the value distribution of time series data.
+In summary, different time series anomaly detection methods have their strengths
+and limitations. Traditional statistical methods excel in handling linear and periodic data
+but perform poorly with nonlinear and complex dynamics. Machine learning methods
+can handle more complex data relationships but often face issues such as kernel function
+selection and overﬁtting. Deep learning methods have high computational complexity and
+a weak ability to extract local patterns.
+Mathematics 2025 ,13, 1209 4 of 17
+3. Materials and Methods
+3.1. Problem Deﬁnition
+Time series data typically consist of values read from multiple sensors, the status of
+actuators, and control system commands, forming a multidimensional time series dataset
+X1:T={x1,x2,······ xT}, where xT∈RDrepresents the D-dimensional measurements
+collected at time point T. For each individual data point in a dimension, it is denoted as xi,t,
+where xi,t∈R,i∈{1, 2,······ ,D},t∈{1, 2,······ ,T}represents each time step in the
+time series.
+In practical applications, anomaly detection often requires the introduction of label
+variables yt, where yt∈{0, 1}represents the data state at time point t. Ifyt=1, it indicates
+that the measurement data at time point tare anomalous; if yt=0, it indicates that the data
+at that time point are normal.
+Since this study assumes that the training dataset does not include anomaly labels,
+an unsupervised learning approach is used. The objective is to train an anomaly detection
+model by learning patterns from normal time series data. This model is then used to evalu-
+ate and determine whether the observed data in the test set exhibit anomalous behavior.
+3.2. Network Architecture
+3.2.1. VAE-Anomaly
+The workﬂow of the model proposed in this paper is illustrated in Figure 1. In
+this model, the initial step involves capturing both long-term and short-term temporal
+dependencies in multivariate time series data through the association discrepancy layer,
+which models the series association and prior association. This allows the model to learn
+the association discrepancies of the raw time series data. Next, the feature vector output
+from the association discrepancy layer is mapped to the latent space via the reconstruction
+layer to capture its latent features. In the latent space, random sampling is performed using
+the reparameterization technique to reconstruct the time series data.𝑋ଵ:்=ሼ 𝑥 ଵ,𝑥ଶ,⋯⋯𝑥 ்ሽ 𝑥்∈ℝ஽
+𝑥௜,௧
+𝑥௜,௧∈ℝ 𝑖∈ሼ 1 , 2 , ⋯ ⋯, 𝐷 ሽ 𝑡∈ሼ 1 , 2 ,⋯⋯,𝑇 ሽ
+𝑦௧ 𝑦௧∈ሼ0,1ሽ 𝑦௧=1
+𝑦௧=0
+tt
+Figure 1. Workﬂow of VAE-Anomaly.
+After reconstruction, the differences between anomaly and normal points in the time
+series data are further magniﬁed, allowing the model to enhance its ability to distinguish
+anomalies by learning the association discrepancies from the reconstructed time series
+Mathematics 2025 ,13, 1209 5 of 17
+data. Moreover, the randomness introduced during the VAE reconstruction process greatly
+improves the model’s robustness and performance.
+Subsequently, the model combines reconstruction loss and association discrepancy
+to identify anomalous points. The reconstruction loss reﬂects the model’s effectiveness
+in reconstructing the time series, while the association discrepancy helps differentiate
+between normal and anomalous data points. The detection phase culminates in computing
+anomaly likelihood metrics for each temporal unit, followed by binary classiﬁcation against
+statistically validated thresholds derived from training distributions. The structure of the
+VAE-Anomaly model is shown in Figure 2.ﬀ
+ﬀ
+ﬀ
+𝑋
+𝑋∈ℝே×஽
+𝑍௟=N o r m ሺ A s s o c i a t i o n−D i s c r e p a n c yሺ𝑋௟ିଵሻ+𝑋௟ିଵሻ
+𝑋௟= NormሺFeed − Forward ሺ𝑍௟ሻ+𝑍௟ሻ 
+𝑋௟∈ℝே×ௗ ೘೚೏೐೗ 𝑙 ∈ ሼ 1 ,⋯,𝐿 ሽ 𝑑௠௢ௗ௘௟
+𝑋଴𝑋
+𝑍௟∈ℝே×ௗ ೘೚೏೐೗
+σ
+𝑄=𝑋௟ିଵ𝑊ொ௟
+Figure 2. Model structure of VAE-Anomaly.
+3.2.2. Association Discrepancy Layer
+For multivariate time series input, the input vector is ﬁrst element-wise added to a
+position encoding vector derived from sine and cosine functions, enabling the encoding
+of sequential information within the data. This method allows the model to capture the
+relative positions of elements within the sequence. The ﬁnal input representation, denoted
+asX, incorporates both the temporal information of each time point and the encoded
+positional information of the sequence.
+Assume that the association discrepancy layer contains Llayers, and the input se-
+quence is X∈RN×D, where Nis the length of the sequence and Dis the feature dimension
+at each time point. The operation of the l-th layer can be expressed as
+Zl=Norm/parenleftBig
+Association −Discrepancy/parenleftBig
+Xl−1/parenrightBig
++Xl−1/parenrightBig
+, (1)
+Xl=Norm/parenleftBig
+Feed−Forward/parenleftBig
+Zl/parenrightBig
++Zl/parenrightBig
+(2)
+where Xl∈RN×dmodel and l∈{1,···,L}represent the output of the l-th layer, and dmodel
+is the feature dimension of each layer. X0is the input Xafter position encoding, and
+Zl∈RN×dmodel is the intermediate state of the l-th layer. The association discrepancy
+module (ADM) is used to calculate the association discrepancy.
+In the ADM, four important matrices are deﬁned: the query vector matrix Q, the
+key vector matrix K, the value vector matrix V, and the scaling parameter matrix σ. The
+computation of these matrices is as follows:
+Q=Xl−1Wl
+Q, (3)
+K=Xl−1Wl
+K, (4)
+V=Xl−1Wl
+V, (5)
+σ=Xl−1Wl
+σ (6)
+Mathematics 2025 ,13, 1209 6 of 17
+where Q,K,V∈RN×dmodeland σ∈RN×1,Wl
+Q,Wl
+K,Wl
+Vare the parameter matrices of the
+l-th layer, belonging to Rdmodel×dmodel, while Wl
+σ∈Rdmodel×1.
+For the prior association matrix Plof the l-th layer, the computation formula is
+Pl=Rescale
+/bracketleftBigg
+1√
+2πσiexp/parenleftBigg
+−|j−i|2
+2σ2
+i/parenrightBigg/bracketrightBigg
+i,j∈{1,···,N}
+ (7)
+where the prior association matrix Pl∈RN×Nis constructed using the learned scaling
+parameter σ∈RN×1, with the i-th element σicorresponding to the scaling value at the
+i-th time point. With the application of the Rescale(.) operation, the obtained association
+weights are divided by the sum of each row, converting them into a normalized discrete
+distribution Pl, such that the sum of the elements in each row equals 1.
+At the same time, the sequence association matrix Slis computed by calculating the
+inner product of the query vector Qand the key vector Kand normalizing it using the
+Softmax function, as shown in the following formula:
+Sl=Softmax/parenleftbiggQKT
+√dmodel/parenrightbigg
+(8)
+where Sl∈RN×Nrepresents the sequence association matrix, and the Softmax operation is
+performed along the last dimension for normalization. Therefore, each row of Slforms a
+discrete distribution, representing the association weights between each time point and the
+other time points.
+By multiplying Slwith the value vector matrix V, the output feature vector elof the
+layer can be obtained:
+el=SlV (9)
+where el∈RN×dmodel represents the feature representation of the input time series after deep
+encoding, capturing both contextual information and long-term dependencies.
+By alternating the stacking of the ADM and feedforward layers, the encoder is able to
+learn underlying association patterns from deep and multi-level features. The association
+discrepancy (AssDis) represents the symmetric KL divergence between the prior association
+and sequence association. The overall association discrepancy is computed by averaging the
+discrepancies across multiple layers. Speciﬁcally, the formula for calculating the association
+discrepancy is
+AssDis(P,S;X)=/bracketleftBigg
+1
+LL
+∑
+l=1/parenleftBig
+KL/parenleftBig
+Pl
+i,:∥Sl
+i,:/parenrightBig
++KL/parenleftBig
+Sl
+i,:∥Pl
+i,:/parenrightBig/parenrightBig/bracketrightBigg
+i=1,···,N(10)
+where KL(.) represents the Kullback–Leibler (KL) divergence. For each layer l,Pland
+Slare the prior association and sequence association matrices, and Pl
+i,:and Sl
+i,:represent
+the distributions of the i-th row, respectively. Finally, AssDis(P, S; X)∈RN×1is a vector
+containing Nelements, where each element represents the association discrepancy at the
+corresponding time point in the time series.
+Based on the above formula, it can be inferred that for normal data points, the associa-
+tion discrepancy values are typically large, while for anomalous data points, the association
+discrepancy is usually smaller. This is because the association patterns between anomalies
+and normal points are typically quite different, leading to smaller differences between
+their prior association and sequence association distributions, which results in a lower
+association discrepancy.
+Mathematics 2025 ,13, 1209 7 of 17
+3.2.3. Reconstruction Layer
+The layer processes feature encodings elfrom the association discrepancy layer
+through convolutional operations to parameterize the variational distribution q(Z|X),
+estimating posterior parameters/parenleftbig
+µ,σ2/parenrightbig
+for latent variable Zwhile minimizing KL diver-
+gence between the variational approximation and target posterior p(Z|X).
+This process can be viewed as searching for a regular path in the high-dimensional
+data space, such that different feature vectors have a structured distribution in the latent
+space. Finally, the latent variable Zis sampled from q(Z|X)using the reparameterization
+trick. Speciﬁcally, the reparameterization trick involves sampling a noise vector ϵfrom a
+standard normal distribution and then combining it with the mean and standard deviation
+to generate the latent vector:
+z=µ+ϵ×σ (11)
+where ϵ∼N(0, 1)represents the noise vector sampled from the standard normal distri-
+bution. This method introduces randomness while ensuring the gradient is computable,
+allowing the model to explore diverse feature combinations ﬂexibly in the latent space.
+After being processed by the reconstruction layer, the feature vectors of normal data
+form a relatively stable distribution pattern in the latent space. When the data point is
+anomalous, its feature vector will deviate from the normal distribution. By setting an ap-
+propriate threshold, the model can quickly and accurately identify anomalous data points.
+3.2.4. Stochastic Association Discrepancy Layer
+In the stochastic association discrepancy layer, the model learns from the time series
+data that have been reconstructed by the reconstruction layer, effectively extracting the as-
+sociation discrepancies between different time points in the series. Since the reconstruction
+process restores the latent features of the original data while introducing some randomness
+for each data point, the differences between anomalous and normal data points become
+more pronounced in the reconstructed data. By calculating these discrepancies, the associa-
+tion discrepancy mechanism can effectively distinguish between anomalous and normal
+states within a small error margin.
+Moreover, the randomness in the reconstruction process not only enhances the model’s
+generalization ability but also, by learning from diverse samples, allows the model to
+exhibit greater ﬂexibility and robustness when handling different types of anomalies. This
+mechanism helps the model better capture the data distribution features in the time series,
+and especially in complex, dynamic environments, it enables the effective identiﬁcation of
+potential anomalous patterns, thereby improving anomaly detection accuracy.
+The output of the stochastic association discrepancy layer is the reconstructed time
+series data ˆX.
+3.3. Optimization Objective
+In this paper, reconstruction error serves as the objective for model training. The
+calculation of the reconstruction error combines mean squared error (MSE) and Kullback–
+Leibler divergence (KLD). The formula for Kullback–Leibler divergence (KLD) is
+LKLD=1
+2n
+∑
+i=1/parenleftBig
+µ2
+i+σ2
+i−log/parenleftBig
+σ2
+i/parenrightBig
+−1/parenrightBig
+(12)
+where nrepresents the dimension of the latent variable, and µiand σ2
+irepresent the i-th
+component of the mean vector µand variance vector σ2of the approximate posterior
+distribution. KL divergence (KLD) quantiﬁes the difference between two probability
+Mathematics 2025 ,13, 1209 8 of 17
+distributions. By minimizing the KLD, the model encourages the approximate posterior
+distribution q(Z|X)to align with the true posterior distribution p(Z|X).
+The MSE is computed using the following formula:
+LMSE=1
+nn
+∑
+i=1(xi−ˆxi)2(13)
+where ndenotes the dimension of the reconstructed time series, and xiand ˆxirepresent
+thei-th component of the original and reconstructed data. MSE primarily measures the
+model’s reconstruction ability; i.e., it evaluates how well the model restores the input data.
+During model training, minimizing the MSE helps the decoder accurately reconstruct the
+original input data from the latent variables output by the encoder, thereby enabling the
+model to learn an effective feature representation of the data.
+This paper applies an additional loss function to enhance the association discrepancy.
+Since the prior association usually exhibits unimodality, the discrepancy loss guides the
+sequence association to focus more on non-adjacent regions. For anomalous points, the re-
+lated Gaussian distance tends to focus on neighboring points, and the attention mechanism
+reﬂects this trend, resulting in a smaller association discrepancy (AssDis) for anomalous
+points. By amplifying the value of AssDis, the model can direct the attention mechanism to
+focus on more distant points, thereby increasing the reconstruction difﬁculty for abnormal
+points and improving their detectability.
+The loss function is expressed as
+LAssdis/parenleftbig
+P,S,λ;X,ˆX/parenrightbig=λ×/parenleftbig∥AssDis(P,S;X)∥1+/vextenddouble/vextenddoubleAssDis/parenleftbig
+P,S;ˆX/parenrightbig/vextenddouble/vextenddouble
+1/parenrightbig
+(14)
+where∥.∥kdenotes the k-norm, λis the parameter controlling the switch between minimiza-
+tion and maximization, AssDis(P,S;X)is the association discrepancy of the original time
+series data, and AssDis/parenleftbig
+P,S;ˆX/parenrightbig
+is the association discrepancy of the reconstructed time
+series data. When the model minimizes the loss, the goal is to maximize the association
+discrepancy. Directly maximizing the association discrepancy can lead to a rapid reduction
+in the Gaussian kernel’s scale parameters, which may render the prior sequence ineffective.
+Therefore, to better control the association learning, this paper employs a min–max strategy.
+Speciﬁcally, the optimization process is divided into two stages:
+Minimization Stage: In this stage, the prior association Pis optimized to make it as
+close as possible to the sequence association Slearned from the original time series. This
+ensures that the prior association adapts to different time series patterns while preventing
+the scale parameters from becoming too small, thus maintaining the effectiveness of the
+prior sequence.
+Maximization Stage: In this stage, the sequence association Sis optimized to maximize
+the association discrepancy. This process encourages the sequence association to focus
+more on non-adjacent points, thereby increasing the difﬁculty of reconstructing abnormal
+points and enhancing their detectability.
+Since the minimization and maximization stages optimize different objectives, different
+gradient propagation strategies are employed during the optimization process: the gradient
+in the minimization stage is propagated to the prior association P, while the gradient in the
+maximization stage is propagated to the sequence association S. By adjusting the sign of λ,
+the switch between the minimization and maximization stages is controlled.
+The overall optimization objective function is
+Ltotal=(LKLD+LMSE)+k×/parenleftbigLAssDis/parenleftbig
+P,Sdetach , 1;X,ˆX/parenrightbig+LAssDis/parenleftbig
+Pdetach ,S,−1;X,ˆX/parenrightbig/parenrightbig
+(15)
+Mathematics 2025 ,13, 1209 9 of 17
+where kis the weight parameter, LAssDis/parenleftbig
+P,Sdetach , 1;X,ˆX/parenrightbig
+is the loss function for
+the minimization phase, and LAssDis/parenleftbig
+Pdetach ,S,−1;X,ˆX/parenrightbig
+is the loss function for the
+maximization phase.
+3.4. Anomaly Score
+The ﬁnal anomaly score calculation, incorporating the normalized association discrep-
+ancy into the reconstruction criterion, is as follows:
+AnomalyScore/parenleftbig
+X,ˆX/parenrightbig=Softmax/parenleftbig−/parenleftbig
+AssDis(P,S;X)+AssDis/parenleftbig
+P,S;ˆX/parenrightbig/parenrightbig/parenrightbig/circledotdisplay/parenleftbig
+MSE/parenleftbig
+X,ˆX/parenrightbig+KLD/parenrightbig
+(16)
+where the association discrepancy of the original time seri es data is denoted as AssDis(P,S;X),
+and the association discrepancy of the reconstructed time series data is denoted as
+AssDis/parenleftbig
+P,S;ˆX/parenrightbig
+. The symbol/circledottextrepresents element-wise multiplication, while MSE(.)
+and KLD represent the MSE and KLD at each point. The anomaly score synthesizes as-
+sociation discrepancy metrics with reconstruction errors. Anomalous instances typically
+exhibit reduced association consistency coupled with ampliﬁed reconstruction deviations,
+resulting in discriminative score elevation compared to normal patterns.
+After the anomaly score for each time point is obtained, a threshold must be set to
+determine whether an anomaly occurs. An anomaly score exceeding this threshold will be
+classiﬁed as anomalous. Setting the threshold involves balancing two factors: suboptimal
+threshold calibration induces dual detection errors: under-thresholding elevates false
+positive rates through normal data misclassiﬁcation, while over-thresholding suppresses
+anomaly sensitivity by increasing false negative rates.
+To resolve this challenge, the proposed methodology leverages Extreme Value Theory
+(EVT)-based Peak Over Threshold (POT) modeling for automated threshold calibration. The
+model ﬁts the extreme value probability distribution of the anomaly score sequence, derives
+the region beyond the threshold, and, following the Pickands theorem, approximates its
+tail distribution using the Generalized Pareto Distribution (GPD). The speciﬁc formula is
+F(s)=P(th−S>s|S<th)∼/parenleftbigg
+1+γs
+β/parenrightbigg−1
+γ
+(17)
+where this the initial threshold for the anomaly score, γand βparameterize the Generalized
+Pareto Distribution (GPD) shape and scale characteristics, and Srepresents any observable
+in the anomaly score sequence. The part below the threshold this given by th−Sand
+is determined based on a lower quartile. The estimators ˆγand ˆβare obtained through
+Maximum Likelihood Estimation (MLE) optimization.
+The ﬁnal threshold th Fis calculated as
+thF=th−ˆβ
+ˆγ/parenleftBigg/parenleftbiggqN
+Nth/parenrightbigg−ˆγ
+−1/parenrightBigg
+(18)
+where qis the observed expected probability S<th,Nis the sum total of observed data,
+and Nthis the number of time points below the initial threshold th.
+After obtaining the ﬁnal threshold thF, this paper marks anomalies by checking
+whether the anomaly score surpasses this value. Speciﬁcally, the rule for determining
+anomalies and normal points is as follows:
+yi=/braceleftBigg
+1 : Anomaly AnomalyScore (Xi)≥thF
+0 : normal AnomalyScore (Xi)<thF(19)
+Mathematics 2025 ,13, 1209 10 of 17
+4. Experiment
+4.1. Datasets
+To assess the effectiveness of the proposed anomaly detection model, ﬁve representa-
+tive benchmark datasets from real-world application scenarios were selected for experi-
+mentation. The statistical characteristics of the datasets are summarized in Table 1, which
+include the training set length, testing set length, feature dimensions, and anomaly rates.
+Table 1. Details of benchmark datasets.
+Dataset Training Test (Labeled) DimensionAnomaly
+Ratio (%)
+MSL 58,317 73,729 55 10.5
+SMAP 135,183 427,617 25 12.8
+PSM 132,481 87,841 25 27.8
+SMD 708,405 708,420 38 4.2
+SWaT 495,000 449,919 51 12.1
+MSL (Mars Science Laboratory Dataset): Collected by NASA, it showcases sensor and
+actuator status data from the Mars rover [ 26].
+SMAP (Soil Moisture Active Passive Dataset): Also collected by NASA, it provides soil
+sample and telemetry data used by the Mars rover. Compared to MSL, the SMAP dataset
+includes more point anomalies [ 26].
+PSM (Pooled Server Metrics Dataset): A public dataset from eBay server machines,
+containing 25 dimensions [ 27].
+SMD (Server Machine Dataset): A ﬁve-week dataset sourced from a computing cluster
+of an internet company, recording resource usage access traces of 28 machines [ 23].
+SWaT (Secure Water Treatment Dataset): A dataset based on 51 sensor dimensions
+from a continuously operating critical infrastructure system [ 28].
+4.2. Experimental Setup
+This study adopts the standardized protocol established by Shen et al. [ 29], employing
+a non-overlapping sliding window mechanism with ﬁxed window size (w = 100 across
+all datasets) for subsequence extraction. Dynamic threshold adaptation is implemented
+through Extreme Value Theory-based optimization.
+This work implements the anomaly post-processing protocol by Xu et al. [ 30], where
+the detection of a single anomaly point within a continuous window triggers comprehensive
+labeling of all data points in that window. The rationale behind this strategy comes from
+practical observations: the detection of an anomaly time point usually triggers an alarm,
+which then leads to the focus on the entire anomaly segment.
+In terms of model structure, the association discrepancy layer and the stochastic
+association discrepancy layer each consist of 3 layers. The hidden state dimension dmodel is
+set to 512 and the number of attention heads his ﬁxed at 8. To balance the two components
+of the loss function, the hyperparameter kis consistently set to 3 across all datasets.
+The training process uses the ADAM optimizer [ 31], with the initial learning rate set
+to 10−4. Early stopping termination criteria are enforced, constraining maximum training
+iterations to 10 epochs with the batch size of 32.
+4.3. Main Results
+The proposed time series anomaly detection framework undergoes rigorous evaluation
+through empirical validation on ﬁve benchmark temporal datasets. The performance of
+the proposed model was compared with the following advanced baseline models: LSTM-
+Mathematics 2025 ,13, 1209 11 of 17
+VAE [ 22], AnomalyTransformer [ 2], DCdetector [ 32], OmniAnomaly [ 23], InterFusion [ 33],
+and DAGMM [ 24]. The comparative results are systematically summarized in Table 2.
+The F1 score serves as the primary evaluation metric, with boldface denoting optimal
+performance and underlined entries indicating secondary superiority.
+Table 2. Performance comparison of VAE-Anomaly and other methods. All results are in %, the best
+ones are in Bold, and the second ones are underlined.
+Dataset SMD MSL SMAP SWaT PSM
+Metric P R F1 P R F1 P R F1 P R F1 P R F1
+DAGMM 67.30 49.89 57.30 89.60 63.93 74.62 86.45 56.73 68.51 89.92 57.84 70.40 93.49 70.03 80.08
+LSTM-VAE 75.76 90.08 82.30 85.49 79.94 82.62 92.20 67.75 78.10 76.00 89.50 82.20 73.62 89.92 80.96
+OmniAnomaly 83.68 86.82 85.22 89.02 86.37 87.67 92.49 81.99 86.92 81.42 84.30 82.83 88.39 74.46 80.83
+InterFusion 87.02 85.43 86.22 81.28 92.70 86.62 89.77 88.52 89.14 80.59 85.58 83.01 83.61 83.45 83.52
+AnomalyTrans 88.47 92.28 90.33 91.92 96.03 93.93 93.59 99.41 96.41 89.10 99.28 94.22 96.94 97.81 97.37
+DCdetector 83.59 91.10 87.18 93.69 99.69 96.60 95.63 98.92 97.02 93.11 99.77 96.33 97.14 98.74 97.94
+VAE-Anomaly 93.55 93.02 93.28 92.48 97.93 95.13 95.98 98.44 97.19 92.92 100 96.33 98.89 98.16 98.52
+As evidenced in the comparative analysis, the proposed architecture demonstrates
+superior performance over ﬁve benchmark models across ﬁve standardized datasets (SMD,
+MSL, SMAP , SWaT, and PSM), achieving F1 scores of 93.28%, 95.13%, 97.19%, 96.33%,
+and 98.52%, respectively. Speciﬁcally, the F1 scores of the proposed model are improved
+by 10.98%, 12.51%, 19.09%, 14.13%, and 17.56% compared to LSTM-VAE on the SMD,
+MSL, SMAP , SWaT, and PSM datasets, respectively; improved by 8.06%, 7.46%, 10.27%,
+13.50%, and 17.69% compared to OmniAnomaly; and improved by 7.06%, 8.51%, 8.05%,
+13.32%, and 15.00% compared to InterFusion. These three baseline models are all sequence
+generation models based on VAE.
+Compared to LSTM-VAE, the proposed model shows a signiﬁcant improvement in
+F1 scores across the ﬁve datasets. This improvement is primarily due to the modeling
+of long-term dependencies in time series anomaly detection tasks. LSTM-VAE fails to
+effectively capture the temporal dependencies of the latent variables in the latent space,
+whereas the proposed model incorporates a multi-head self-attention mechanism that
+effectively models long-term dependencies.
+OmniAnomaly uses GRU to capture temporal correlations, but it has limitations when
+handling long-term dependencies. Additionally, it constructs prior distributions based on
+a linear Gaussian state space model (LGSSM), which limits the model’s ability to express
+complex nonlinear transformations. Moreover, OmniAnomaly does not fully integrate
+the hidden state information accumulated by GRU during the generation process, which
+hinders the model’s ability to learn deep patterns.
+InterFusion reﬁnes normal behavior patterns through hierarchical variational autoen-
+coders, but it still relies on reconstruction probabilities as anomaly scores, rather than
+combining multiple features into a comprehensive score. As a result, its detection perfor-
+mance is not as effective as the proposed model.
+The F1 scores of DAGMM are lower than the proposed model by 35.98%, 20.51%,
+28.68%, 25.93%, and 18.44% on the SMD, MSL, SMAP , SWaT, and PSM datasets, respectively.
+DAGMM leverages deep autoencoders for dimensionality reduction and synergistically
+integrates Gaussian Mixture Models (GMMs) to perform probabilistic anomaly scoring.
+However, its autoencoders fail to effectively extract temporal features from multidimen-
+sional time series data, resulting in poor performance across these ﬁve datasets.
+Additionally, the proposed model outperforms AnomalyTransformer by 2.95%, 1.2%,
+0.78%, 2.11%, and 1.15% in terms of F1 score on the SMD, MSL, SMAP , SWaT, and PSM
+datasets, respectively. Although AnomalyTransformer also uses association differences to
+detect anomalies, it relies solely on the self-attention mechanism. Comparative analysis
+Mathematics 2025 ,13, 1209 12 of 17
+reveals suboptimal efﬁcacy in temporal pattern abstraction compared to our architec-
+ture, particularly in capturing latent structural dependencies within time series data. The
+proposed model, by learning association differences on reconstructed time series data, en-
+hances the ability to distinguish anomalies based on association differences. Consequently,
+the proposed architecture demonstrates superior performance over AnomalyTransformer
+across all ﬁve benchmark datasets.
+On the SMD, SMAP , and PSM datasets, the proposed model outperforms DCdetector
+by 6.1%, 0.17%, and 0.58%, respectively, while performing similarly on the SWaT dataset.
+On the MSL dataset, the proposed model’s F1 score is 1.47% lower than DCdetector. Among
+all ﬁve datasets, the proposed model shows the most signiﬁcant improvement on the SMD
+dataset, where it outperforms DCdetector by the largest margin. The SMD dataset contains
+many short-duration samples with subtle anomalous changes. DCdetector, which uses a
+dual-attention contrastive representation learning structure, struggles to effectively capture
+these small anomaly features.
+Overall, the proposed model achieves an average F1 score that surpasses the baseline
+method, DCdetector, by 1.076% across the ﬁve datasets. These ﬁndings substantiate the
+model’s superior generalization capabilities and operational efﬁcacy in complex environ-
+ments characterized by heterogeneous anomaly patterns.
+4.4. Visualization Analysis
+To better demonstrate the effectiveness of the association discrepancy and recon-
+struction error in time series modeling, this study selected a subset of test data from the
+SMD dataset for visualization analysis. Figure 3delineates the ﬂuctuation patterns across
+distinct sequences in the testing set, with tripartite representations comprising the associa-
+tion discrepancy vector, reconstructed sequence, and raw input. Anomalous regions are
+demarcated via red bounding boxes.ﬀ
+ﬀ
+tt
+ﬃ tt
+ﬀ
+ﬀ
+tt
+ﬃ
+tt
+tt ﬀ
+tt
+ 
+Figure 3. Visualization of test set data.
+From the analysis of Figure 3, it is clear that the association discrepancy values corre-
+sponding to anomaly points in the original sequence are signiﬁcantly lower than those of
+normal points, while the reconstruction error exhibits a notable increase near the anomaly
+points. This suggests that the association discrepancy mechanism effectively identiﬁes
+variations in correlations between normal and abnormal states within the time series. The
+association discrepancy at anomaly points shows distinct characteristics compared to nor-
+mal points. Additionally, the reconstruction error shows greater ﬂuctuation at the anomaly
+Mathematics 2025 ,13, 1209 13 of 17
+points, further proving that the reconstruction module can accurately reﬂect the anomalous
+features in the data.
+By combining these two metrics, the model can more effectively differentiate between
+anomaly points and normal points, thereby improving anomaly detection accuracy.
+At the bottom of Figure 3, the stability of the reconstructed sequence is shown. Despite
+small ﬂuctuations in the original data, the reconstructed sequence remains relatively steady.
+This characteristic suggests that through the learning process of the reconstruction module,
+the model is able to capture the global trends in the time series and avoid misjudgments or
+overreactions caused by minor ﬂuctuations, effectively reducing the false positive rate.
+In summary, by combining the dual decision-making mechanisms of association
+discrepancy and reconstruction error, the model demonstrates higher sensitivity and ro-
+bustness when faced with local ﬂuctuations and sudden anomalies in time series data.
+Consequently, it demonstrates superior performance in detecting complex anomalies.
+4.5. Parameter Experiment
+To explore the model’s sensitivity to hyperparameters, two of the most important
+hyperparameters were selected for experimentation: the sliding window length and the
+joint optimization weight.
+To further investigate the inﬂuence of sliding window size on anomaly discernment
+accuracy, experiments were conducted on ﬁve different datasets, while keeping other
+parameters in the model unchanged and setting different sliding window sizes. Different
+sliding window sizes were tested, and Figure 4delineates the resultant performance metrics.
+The ﬁgure indicates that the proposed model maintains a certain level of stability across
+varying sliding window sizes.ﬀ
+ﬀ ﬀ
+tt
+ﬀ
+ﬀ
+tt ﬀ ﬀ
+ 
+Figure 4. Inﬂuence of sliding window size on detection performance.
+However, it is important to note that as the sliding window size grows, the model’s
+memory consumption also increases, leading to a signiﬁcant rise in both training and
+inference time costs. With smaller sliding windows, although each sliding step is shorter,
+allowing for more frequent updates to the model state, the limited information within the
+window often fails to capture sufﬁcient contextual details from the sequence, leading to
+reduced anomaly detection accuracy.
+To further examine the impact of the parameter k, which regulates the optimization
+weight between reconstruction error and association discrepancy, on model performance,
+extensive experiments were conducted on ﬁve datasets. Speciﬁcally, we explored the sensi-
+Mathematics 2025 ,13, 1209 14 of 17
+tivity of the model’s anomaly detection accuracy to different k values. The experimental
+results are presented in Figure 5.ﬃ
+ﬀ
+ 
+ﬀ
+ﬀ ﬀ
+𝑑௠௢ௗ௘௟
+Figure 5. Inﬂuence of joint optimization weights on detection performance.
+The results indicate that when k= 3, the model achieves the best F1 score across most
+datasets, suggesting that this value effectively balances reconstruction error and association
+discrepancy. Within the range of k= 2 to k= 6, the model performance remains stable. This
+demonstrates the model’s broad adaptability in anomaly detection tasks.
+From the experimental outcomes, the model’s adjustment to the kvalue exhibits
+high adaptability, further conﬁrming its ability to handle varying data characteristics and
+changes in real-world applications. This robustness ensures that the proposed anomaly
+detection method can effectively address various challenges in different datasets and
+complex environments.
+As shown in Figure 6, the per-timestep processing time of our method under varying
+dmodel dimensions on the SMD dataset demonstrates its real-time monitoring capability in
+industrial environments.ﬃ
+ﬀ
+ﬀ
+ﬀ ﬀ
+𝑑௠௢ௗ௘௟
+ 
+Figure 6. Single-time-step processing time with different dmodel sizes.
+4.6. Ablation Study
+To validate the effectiveness of the design of each module in the proposed anomaly
+detection model, this study compares the model with three of its variants. The experimental
+results, in terms of F1 scores, are shown in Table 3.
+Mathematics 2025 ,13, 1209 15 of 17
+Table 3. F1 scores in the ablation experiments.
+SMD MSL SMAP SWaT PSM
+VAE-Anomaly-1 76.31 77.84 69.24 73.36 78.34
+VAE-Anomaly-2 88.35 92.34 92.23 92.53 95.34
+VAE-Anomaly-3 89.15 91.91 96.44 95.26 94.76
+VAE-Anomaly 93.28 95.13 97.19 96.33 98.52
+VAE-Anomaly-1 refers to using only reconstruction error as the criterion for anomaly
+detection, where reconstruction error includes MSE and KLD.
+VAE-Anomaly-2 refers to using only association difference as the criterion for
+anomaly detection.
+VAE-Anomaly-3 refers to using a combination of association difference and recon-
+struction error, but without using dynamic thresholds.
+VAE-Anomaly refers to the anomaly detection model introduced in this paper.
+The table shows that the proposed model outperforms the VAE-Anomaly-1 model in
+terms of F1 scores by 16.97%, 17.29%, 27.95%, 22.97%, and 20.18% for the SMD, MSL, SMAP ,
+SWaT, and PSM datasets, respectively. It also outperforms the VAE-Anomaly-2 model by
+4.93%, 2.79%, 4.86%, 3.80%, and 3.18% for the same datasets. This indicates that combining
+reconstruction error and association difference as the anomaly detection criteria leads to
+better identiﬁcation of anomalies in time series data.
+Reconstruction error provides an overall understanding of the underlying structural
+information in the time series data, ensuring that the learned latent features follow certain
+statistical patterns. The association difference captures the intrinsic relationships between
+time series and can effectively capture changes in these relationships under time, periodicity,
+seasonality, and anomaly conditions. The combination of both enables more comprehensive
+anomaly detection and feature learning, thereby helping to build a robust model.
+The proposed model outperforms the VAE-Anomaly-3 model by 4.13%, 3.22%, 0.75%,
+1.07%, and 3.76% for the SMD, MSL, SMAP , SWaT, and PSM datasets, respectively. This
+demonstrates that by dynamically setting the anomaly score threshold in an appropriate
+way, the model becomes more intelligent and ﬂexible. It can continuously adjust the criteria
+for determining anomalies according to the actual data conditions, improving detection
+accuracy, and enhancing the model’s robustness in dealing with complex situations such as
+data dynamics, local anomalies, and concept drift. This provides a more reliable solution
+for various time series anomaly detection tasks.
+5. Conclusions
+This paper proposes a novel multivariate time series anomaly detection model aimed
+at improving the performance of time series anomaly detection. By introducing association
+discrepancy, the model effectively captures the nature of anomalous changes in time series.
+The calculation of association discrepancy allows the model to quantify the changes in the
+degree of correlation between variables, thus enabling a more precise distinction between
+normal and abnormal states. Additionally, by using VAE to reconstruct the time series, the
+model identiﬁes the factors that best represent the essential characteristics of the data. By
+further learning the association discrepancy of the reconstructed time series, the model’s
+anomaly differentiation ability is enhanced and generalized.
+Furthermore, the combination of mean squared error, KL divergence, and association
+discrepancy as anomaly detection criteria signiﬁcantly enhances the model’s capability
+to detect anomalies. The experimental results across ﬁve datasets demonstrate that the
+proposed model achieves an average F1 score 1.076% higher than the best baseline method,
+DCdetector, conﬁrming the model’s effectiveness and generalization capability.
+Mathematics 2025 ,13, 1209 16 of 17
+In future work, we plan to further investigate how to reduce the computational
+complexity of the model, so that it can be better applied to real-world anomaly detection
+scenarios, enhancing its performance in real-time detection and large-scale datasets.
+Author Contributions: Conceptualization, H.W. and H.Z.; methodology, H.W.; software, H.W.;
+validation, H.W. and H.Z.; formal analysis, H.W.; investigation, H.W.; resources, H.W.; data curation,
+H.W.; writing—original draft preparation, H.W.; writing—review and editing, H.W.; visualization,
+H.W.; supervision, H.W.; project administration, H.W.; funding acquisition, H.Z. All authors have
+read and agreed to the published version of the manuscript.
+Funding: This research was funded by the “Pioneer” and “Leading Goose” R&D Program of Zhejiang
+Province, grant numbers 2022C01220, 2024C01019.
+Data Availability Statement: All data are publicly available. SMD: https://github.com/NetManAIOps/
+OmniAnomaly ; MSL: https://github.com/khundman/telemanom ; SMAP: https://github.com/
+khundman/telemanom ; SWaT: https://itrust.sutd.edu.sg/itrust-labs_datasets/dataset_info/ ; PSM:
+https://github.com/eBay/RANSynCoders/tree/main/data .
+Conﬂicts of Interest: The authors declare no conﬂicts of interest.
+References
+1. Liu, J.; Fang, J.; Lei, F. On-Line Detection Method for Abnormal Data of Power Quality. Comput. Eng. Appl. 2020 ,56, 240–247.
+2. Yao, Z.; Wang, R.; Chen, X.; Wang, P .; Guo, Y.; Yu, P .S. Anomaly Transformer: Time series anomaly detection with association
+discrepancy. arXiv 2021 , arXiv:2110.02642.
+3. Siffer, A.; Fouque, P .-A.; Termier, A.; Largouet, C. Anomaly Detection in Streams with Extreme Value Theory. In Proceedings of
+the 23rd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, Halifax, NS, Canada, 13–17 August
+2017; pp. 1067–1075.
+4. Yu, Q.; Jibin, L.; Jiang, L. An Improved ARIMA-Based Trafﬁc Anomaly Detection Algorithm for Wireless Sensor Networks. Int. J.
+Distrib. Sens. Netw. 2016 ,12, 9653230.
+5. Pincombe, B. Anomaly Detection in Time Series of Graphs Using ARMA Processes. Bull. Am. Soc. Overseas Res. 2005 ,24, 2.
+6. Xu, H.; Sun, Z.; Cao, Y.; Bilal, H. A Data-Driven Approach for Intrusion and Anomaly Detection Using Automated Machine
+Learning for the Internet of Things. Soft. Comput. 2023 ,27, 14469–14481. [ CrossRef ]
+7. Liu, F.T.; Ting, K.M.; Zhou, Z.H. Isolation forest. In Proceedings of the 2008 Eighth IEEE International Conference on Data Mining,
+Pisa, Italy, 15–19 December 2008; IEEE: Piscataway, NJ, USA, 2008; pp. 413–422.
+8. Salinas, D.; Flunkert, V .; Gasthaus, J.; Januschowski, T. DeepAR: Probabilistic Forecasting with Autoregressive Recurrent
+Networks. Int. J. Forecast. 2020 ,36, 1181–1191. [ CrossRef ]
+9. Lai, G.; Chang, W.-C.; Yang, Y.; Liu, H. Modeling Long- and Short-Term Temporal Patterns with Deep Neural Networks. In
+Proceedings of the 41st International ACM SIGIR Conference on Research & Development in Information Retrieval, Ann Arbor,
+MI, USA, 8–12 July 2018; pp. 95–104.
+10. Lea, C.; Flynn, M.D.; Vidal, R.; Reiter, A.; Hager, G.D. Temporal Convolutional Networks for Action Segmentation and Detection.
+In Proceedings of the 2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), Honolulu, HI, USA, 21–26 July
+2017; pp. 1003–1012.
+11. Liu, M.; Zeng, A.; Chen, M.; Xu, Z.; Lai, Q.; Ma, L.; Xu, Q. SCINet: Time Series Modeling and Forecasting with Sample Convolution
+and Interaction. In Proceedings of the 36th Conference on Neural Information Processing Systems (NeurIPS 2022), New Orleans,
+LA, USA, 28 November–9 December 2022.
+12. Zhou, H.; Zhang, S.; Peng, J.; Zhang, S.; Li, J.; Xiong, H.; Zhang, W. Informer: Beyond Efﬁcient Transformer for Long Sequence
+Time-Series Forecasting. In Proceedings of the Thirty-Fifth AAAI Conference on Artiﬁcial Intelligence, Virtual Conference, 2–9
+February 2021; Volume 35, pp. 11106–11115.
+13. Wu, H.; Xu, J.; Wang, J.; Long, M. Autoformer: Decomposition Transformers with Auto-Correlation for Long-Term Series
+Forecasting. In Proceedings of the 35th Annual Conference on Neural Information Processing Systems (NeurIPS 2021), Virtual
+Conference, 6–14 December 2021.
+14. Zhou, T.; Ma, Z.; Wen, Q.; Wang, X.; Sun, L.; Jin, R. FEDformer: Frequency Enhanced Decomposed Transformer for Long-Term
+Series Forecasting. In Proceedings of the 39th International Conference on Machine Learning, Baltimore, MD, USA, 17–23 July
+2022; pp. 27268–27286.
+15. Nie, Y.; Nguyen, N.H.; Sinthong, P .; Kalagnanam, J. A Time Series is Worth 64 Words: Long-Term Forecasting with Transformers.
+arXiv 2023 , arXiv:2211.14730.
+Mathematics 2025 ,13, 1209 17 of 17
+16. Oreshkin, B.N.; Carpov, D.; Chapados, N.; Bengio, Y. N-Beats: Neural Basis Expansion Analysis for Interpretable Time Series
+Forecasting. arXiv 2020 , arXiv:1905.1043.
+17. Zeng, A.; Chen, M.; Zhang, L.; Xu, Q. Are Transformers Effective for Time Series Forecasting? arXiv 2022 , arXiv:2205.13504.
+18. Jin, M.; Koh, H.Y.; Wen, Q.; Zambon, D.; Alippi, C.; Webb, G.I.; King, I.; Pan, S. A Survey on Graph Neural Networks for
+Time Series: Forecasting, Classiﬁcation, Imputation, and Anomaly Detection. IEEE Trans. Pattern Anal. Mach. Intell. 2024 ,46,
+10466–10485. [ PubMed ]
+19. Iqbal, A.; Amin, R. Time Series Forecasting and Anomaly Detection Using Deep Learning. Comput. Chem. Eng. 2024 ,182, 108560.
+[CrossRef ]
+20. Cui, Q.D.; Xu, C.; Xu, Y.; Ou, W.; Pang, Y.; Liu, Z.; Shen, J.; Baber, M.Z.; Maharajan, C.; Ghosh, U. Bifurcation and Controller
+Design of 5D BAM Neural Networks with Time Delay. Int. J. Numer. Model. 2024 ,37, e3316. [ CrossRef ]
+21. Maharajan, C.; Sowmiya, C.; Xu, C. Delay Dependent Complex-Valued Bidirectional Associative Memory Neural Networks with
+Stochastic and Impulsive Effects: An Exponential Stability Approach. Kybernetika 2024 ,60, 317–356.
+22. Park, D.; Hoshi, Y.; Kemp, C.C. A multimodal anomaly detector for robot-assisted feeding using an LSTM-based variational
+autoencoder. IEEE Robot. Autom. Lett. 2018 ,3, 1544–1551. [ CrossRef ]
+23. Su, Y.; Liu, R.; Zhao, Y.; Sun, W.; Niu, C.; Pei, D. Robust anomaly detection for multivariate time series through stochastic
+recurrent neural network. In Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data
+Mining, Anchorage, AK, USA, 4–8 August 2019; pp. 2828–2837.
+24. Zong, B.; Song, Q.; Min, M.R.; Cheng, W.; Lumezanu, C.; Cho, D.; Chen, H. Deep autoencoding Gaussian mixture model for
+unsupervised anomaly detection. In Proceedings of the International Conference on Learning Representations, Vancouver, BC,
+Canada, 30 April–3 May 2018; IEEE Press: Piscataway, NJ, USA, 2018; pp. 1–19.
+25. Chung, J.; Kastner, K.; Dinh, L.; Goel, K.; Courville, A.; Bengio, Y. A recurrent latent variable model for sequential data. Adv.
+Neural Inf. Process. Syst. 2015 ,28, 2962–2970.
+26. Hundman, K.; Constantinou, V .; Laporte, C.; Colwell, I.; Soderstrom, T. Detecting Spacecraft Anomalies Using LSTMs and
+Nonparametric Dynamic Thresholding. In Proceedings of the 24th ACM SIGKDD International Conference on Knowledge
+Discovery & Data Mining, London, UK, 19–23 August 2018; pp. 387–395.
+27. Abdulaal, A.; Liu, Z.; Lancewicki, T. Practical Approach to Asynchronous Multivariate Time Series Anomaly Detection and
+Localization. In Proceedings of the 27th ACM SIGKDD Conference on Knowledge Discovery & Data Mining, Singapore, 14–18
+August 2021; pp. 2485–2494.
+28. Mathur, A.P .; Tippenhauer, N.O. SWaT: A water treatment testbed for research and training on ICS security. In Proceedings of the
+2016 International Workshop on Cyber-physical Systems for Smart Water Networks (CySWater), Vienna, Austria, 11 April 2016;
+pp. 31–36.
+29. Shen, L.; Li, Z.; Kwok, J.T. Timeseries anomaly detection using temporal hierarchical one-class network. Adv. Neural Inf. Process.
+Syst. 2020 ,33, 13016–13026.
+30. Xu, H.; Chen, W.; Zhao, N.; Li, Z.; Bu, J.; Li, Z.; Liu, Y.; Zhao, Y.; Pei, D.; Feng, Y.; et al. Unsupervised Anomaly Detection via
+Variational Auto-Encoder for Seasonal KPIs in Web Applications. In Proceedings of the 2018 World Wide Web Conference, Lyon,
+France, 23–27 April 2018; pp. 187–196.
+31. Kingma, D.P .; Ba, J. Adam: A method for stochastic optimization. In Proceedings of the International Conference on Learning
+Representations, San Diego, CA, USA, 7–9 May 2015.
+32. Yang, Y.; Zhang, C.; Zhou, T.; Wen, Q.; Sun, L. DCdetector: Dual Attention Contrastive Representation Learning for Time Series
+Anomaly Detection. In Proceedings of the 29th ACM SIGKDD Conference on Knowledge Discovery and Data Mining, Long
+Beach, CA, USA, 6–10 August 2023; pp. 3033–3045.
+33. Li, Z.; Zhao, Y.; Han, J.; Su, Y.; Jiao, R.; Wen, X.; Pei, D. Multivariate Time Series Anomaly Detection and Interpretation using
+Hierarchical Inter-Metric and Temporal Embedding. In Proceedings of the 27th ACM SIGKDD Conference on Knowledge
+Discovery & Data Mining, Singapore, 14–18 August 2021; pp. 3220–3230.
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.

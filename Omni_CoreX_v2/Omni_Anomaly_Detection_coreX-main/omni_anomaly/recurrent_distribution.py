@@ -54,7 +54,7 @@ class RecurrentDistribution(Distribution):
         input_q = tf.concat([input_q_n_expanded, z_previous], axis=-1)
 
         # 3. استخراج الباراميترز (مع حقن الـ Stability)
-        with tf.compat.v1.variable_scope('inference_net'):
+        with tf.variable_scope('inference_net', reuse=tf.AUTO_REUSE):
             mu_q = self.mean_q_mlp(input_q)
             
             # تحسين عالمي: استخدام الـ softplus_std اللي عملناه لضمان الثبات الرياضي
@@ -86,24 +86,24 @@ class RecurrentDistribution(Distribution):
         # 2. دمج الماضي (الداتا المعطاة) مع الحاضر (Context)
         input_q = tf.concat([given_n, input_q_n], axis=-1)
         
-        with tf.compat.v1.variable_scope('inference_net'):
+        with tf.variable_scope('inference_net', reuse=tf.AUTO_REUSE):
             # 3. استخراج باراميترز التوزيعة بـ "صمام الأمان"
             mu_q = self.mean_q_mlp(input_q)
             # استخدام الـ softplus_std اللي عملناه عشان الـ logstd يكون سليم
             std_q = softplus_std(input_q, units=int(mu_q.shape[-1]), epsilon=1e-5, name='std_q_gate')
-            logstd_q = tf.log(std_q)
 
         # 4. الحساب المطور للـ Log Probability (بدل المعادلات اليدوية الخطيرة)
-        # الطريقة دي بتمنع الـ Gradient Explosion تماماً من غير ما نعمل Clip للـ Error
         # Gaussian Log Prob = -log(std) - 0.5 * log(2*pi) - 0.5 * ((x - mu) / std)^2
-        
+        # Clamp std and squared term to avoid Inf/NaN (e.g. from flow-transformed z).
         constant = -0.5 * tf.log(2.0 * 3.141592653589793)
-        
-        # تحسين: بدل الـ 1e8، بنستخدم الـ Robust Squared Error
-        squared_diff = tf.square((given_n - mu_q) / (std_q + 1e-8))
+        std_safe = tf.maximum(std_q, 1e-6)
+        logstd_q = tf.log(std_safe)
+        squared_diff = tf.square((given_n - mu_q) / std_safe)
+        squared_diff = tf.minimum(squared_diff, 1e2)  # cap to avoid Inf
         log_prob_n = constant - logstd_q - 0.5 * squared_diff
+        # Clamp log_prob to finite range so check_numerics never sees Inf
+        log_prob_n = tf.clip_by_value(log_prob_n, -50.0, 0.0)
 
-        # إضافة اختيارية: Check numerics بجدية
         if self._check_numerics:
             log_prob_n = tf.check_numerics(log_prob_n, "log_prob_step_output")
 

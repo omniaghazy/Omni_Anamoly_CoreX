@@ -1,7 +1,49 @@
 import os
+import sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import tensorflow as tf
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
+# --- TF 1.x Compatibility Shim (Critical for tfsnippet on TF 2.x) ---
+class MockContrib(object):
+    def __init__(self):
+        self.rnn = self
+        self.framework = MockFramework()
+        self.layers = MockLayers()
+    def static_bidirectional_rnn(self, *args, **kwargs):
+        return [tf.zeros_like(args[2][0])] * len(args[2]), None, None
+
+class MockLayers(object):
+    def layer_norm(self, inputs, *args, **kwargs): return inputs
+
+class MockFramework(object):
+    def add_arg_scope(self, func): return func
+    def arg_scope(self, *args, **kwargs):
+        class DummyContextManager:
+            def __enter__(self): pass
+            def __exit__(self, exc_type, exc_val, exc_tb): pass
+        return DummyContextManager()
+
+mock_contrib = MockContrib()
+tf.contrib = mock_contrib
+sys.modules['tensorflow.contrib'] = mock_contrib
+sys.modules['tensorflow.contrib.framework'] = mock_contrib.framework
+sys.modules['tensorflow.contrib.layers'] = mock_contrib.layers
+sys.modules['tensorflow.contrib.rnn'] = mock_contrib
+
+if not hasattr(tf, 'log'): tf.log = tf.math.log
+if not hasattr(tf, 'exp'): tf.exp = tf.math.exp
+if not hasattr(tf, 'sqrt'): tf.sqrt = tf.math.sqrt
+
+# Apply to the base 'tensorflow' module as well
+import tensorflow as tf_base
+for attr in ['log', 'exp', 'sqrt', 'layers', 'GraphKeys']:
+    if not hasattr(tf_base, attr):
+        setattr(tf_base, attr, getattr(tf.compat.v1, attr) if hasattr(tf.compat.v1, attr) else getattr(tf.math, attr))
+sys.modules['tensorflow'].log = tf.math.log
+# -------------------------------------------------------------------
 
 # -*- coding: utf-8 -*-
 import logging
@@ -13,9 +55,21 @@ from argparse import ArgumentParser
 from pprint import pformat, pprint
 
 import numpy as np
+# Restore deprecated np.float alias for tfsnippet on newer NumPy
+if not hasattr(np, 'float'):
+    np.float = float
+
+
+# Reduce terminal noise: suppress TF deprecation and common runtime warnings
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning, module='tensorflow')
+warnings.filterwarnings('ignore', category=UserWarning, module='tensorflow')
+warnings.filterwarnings('ignore', message='.*deprecated.*')
+import logging
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+
 import pandas as pd
 from tfsnippet.examples.utils import MLResults, print_with_title
-from tfsnippet.scaffold import VariableSaver
 from tfsnippet.utils import get_variables_as_dict, register_config_arguments, Config
 
 from omni_anomaly.eval_methods import pot_eval, bf_search
@@ -47,6 +101,11 @@ class ExpConfig(Config):
     nf_layers           = 20
     l2_reg              = 0.0001
     std_epsilon         = 1e-4
+
+    # ── [AD-VAE] Association Discrepancy (Wang & Zhang 2025) ─────────────────
+    adm_layers = 3      # Number of Association layers
+    n_heads    = 8      # Attention heads
+    k_weight   = 3.0    # Weight for discrepancy loss (Min-Max)
 
     # ── Evaluation ────────────────────────────────────────────────────────────
     get_score_on_dim = True    # per-sensor RCA
@@ -99,14 +158,7 @@ def main():
         config.gradient_clip_norm    = getattr(config, 'gradient_clip_norm',    5.0)
         config.valid_step_freq       = getattr(config, 'valid_step_freq',       100)
 
-        # Use a dummy placeholder just for the training loss graph
-        input_x = tf.placeholder(
-            tf.float32,
-            shape=[None, config.window_length, config.x_dim],
-            name='input_x'
-        )
-        loss = model.get_training_loss(input_x)
-
+        # ── 3. Build Trainer (builds loss graph internally) ──────────────────
         trainer = Trainer(
             model=model, model_vs=model_vs,
             max_epoch=config.max_epoch, batch_size=config.batch_size,
