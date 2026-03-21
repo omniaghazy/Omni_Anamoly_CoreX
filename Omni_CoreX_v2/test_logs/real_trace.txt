@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "X:\Omnia_CoreX\Omni_CoreX_v2\trace_dist2.py", line 23, in <module>
-    from tfsnippet.distributions import Distribution
-ImportError: cannot import name 'Distribution' from 'tfsnippet.distributions' (c:\users\memom\omnianomaly\tfsnippet\tfsnippet\distributions\__init__.py). Did you mean: 'distributions'?

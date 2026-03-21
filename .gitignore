@@ -11,12 +11,19 @@ __pycache__/
 *.csv
 *.xlsx
 *.pkl
-*.zip
 
-# Checkpoints
-model_coreX_v1/
-results/
-data/
+# Checkpoints and models
+Version_1_Baseline/model_coreX_v1/
+Version_2_Hybrid/model_coreX_v2_optimized/
+**/results/
+
+# Data folders
+**/data/
+
+# Archives and Logs
+archives/
+debug_logs/
+*.zip
 
 # OS generated files
 .DS_Store
